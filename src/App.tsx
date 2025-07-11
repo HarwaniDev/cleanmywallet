@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Header from './components/Header';
 import TabNavigation from './components/TabNavigation';
 import TokenCard from './components/TokenCard';
@@ -6,8 +6,24 @@ import NFTCard from './components/NFTCard';
 import CleanupCart from './components/CleanupCart';
 import { TabType, Token, NFT, DustItem } from './types';
 import { mockTokens, mockNFTs } from './data/mockData';
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import { WalletDisconnectButton, WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { UnsafeBurnerWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { clusterApiUrl } from '@solana/web3.js';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import '@solana/wallet-adapter-react-ui/styles.css';
 
 function App() {
+  const network = WalletAdapterNetwork.Devnet;
+  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+
+  const wallets = useMemo(
+    () => [
+      new UnsafeBurnerWalletAdapter(),
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [network]
+  );
   const [activeTab, setActiveTab] = useState<TabType>('Tokens');
   const [selectedItems, setSelectedItems] = useState<DustItem[]>([]);
   const [isWalletConnected, setIsWalletConnected] = useState(false);
@@ -18,18 +34,18 @@ function App() {
       type: 'token',
       logo: token.logoURI
     };
-    
+
     setSelectedItems(prev => {
-      const exists = prev.find(item => 
+      const exists = prev.find(item =>
         item.name === dustItem.name && item.type === dustItem.type
       );
-      
+
       if (exists) {
-        return prev.filter(item => 
+        return prev.filter(item =>
           !(item.name === dustItem.name && item.type === dustItem.type)
         );
       }
-      
+
       return [...prev, dustItem];
     });
   }, []);
@@ -40,24 +56,24 @@ function App() {
       type: 'nft',
       logo: nft.image
     };
-    
+
     setSelectedItems(prev => {
-      const exists = prev.find(item => 
+      const exists = prev.find(item =>
         item.name === dustItem.name && item.type === dustItem.type
       );
-      
+
       if (exists) {
-        return prev.filter(item => 
+        return prev.filter(item =>
           !(item.name === dustItem.name && item.type === dustItem.type)
         );
       }
-      
+
       return [...prev, dustItem];
     });
   }, []);
 
   const handleRemoveItem = useCallback((itemToRemove: DustItem) => {
-    setSelectedItems(prev => prev.filter(item => 
+    setSelectedItems(prev => prev.filter(item =>
       !(item.name === itemToRemove.name && item.type === itemToRemove.type)
     ));
   }, []);
@@ -87,20 +103,20 @@ function App() {
       button.classList.add('animate-pulse');
       setTimeout(() => {
         button.classList.remove('animate-pulse');
-        alert(`🎉 Successfully cleaned up ${selectedItems.length} items and reclaimed SOL!`);
+        // alert(`🎉 Successfully cleaned up ${selectedItems.length} items and reclaimed SOL!`);
         setSelectedItems([]);
       }, 2000);
     }
   }, [selectedItems.length]);
 
   const isTokenSelected = useCallback((token: Token) => {
-    return selectedItems.some(item => 
+    return selectedItems.some(item =>
       item.name === token.symbol && item.type === 'token'
     );
   }, [selectedItems]);
 
   const isNFTSelected = useCallback((nft: NFT) => {
-    return selectedItems.some(item => 
+    return selectedItems.some(item =>
       item.name === nft.name && item.type === 'nft'
     );
   }, [selectedItems]);
@@ -122,7 +138,7 @@ function App() {
             ))}
           </div>
         );
-      
+
       case 'NFTs':
         return (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -136,7 +152,7 @@ function App() {
             ))}
           </div>
         );
-      
+
       case 'Cleanup':
         return (
           <div className="max-w-2xl mx-auto">
@@ -148,46 +164,51 @@ function App() {
             />
           </div>
         );
-      
+
       default:
         return null;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0F0F] text-white" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-      <div className="container mx-auto px-4 py-8">
-        <Header 
-          onConnectWallet={handleConnectWallet}
-          isWalletConnected={isWalletConnected}
-        />
-        <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-        
-        <main className="animate-fadeIn">
-          {renderTabContent()}
-        </main>
-        
-        {/* Selection indicator with Go to Cleanup button */}
-        {selectedItems.length > 0 && activeTab !== 'Cleanup' && (
-          <div className="fixed bottom-6 right-6 bg-[#1A1A1A] border border-[#14F195] rounded-lg p-4 shadow-lg shadow-[#14F195]/20">
-            <div className="flex items-center gap-4">
-              <div className="text-[#14F195] font-medium">
-                {selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''} selected
-              </div>
-              <button
-                onClick={handleGoToCleanup}
-                className="bg-[#14F195] text-black px-4 py-2 rounded-lg font-medium 
+    <ConnectionProvider endpoint={endpoint}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          {/* <WalletMultiButton />
+          <WalletDisconnectButton /> */}
+          <div className="min-h-screen bg-[#0F0F0F] text-white" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+            <div className="container mx-auto px-4 py-8">
+              <Header/>
+              <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+
+              <main className="animate-fadeIn">
+                {renderTabContent()}
+              </main>
+
+              {/* Selection indicator with Go to Cleanup button */}
+              {selectedItems.length > 0 && activeTab !== 'Cleanup' && (
+                <div className="fixed bottom-6 right-6 bg-[#1A1A1A] border border-[#14F195] rounded-lg p-4 shadow-lg shadow-[#14F195]/20">
+                  <div className="flex items-center gap-4">
+                    <div className="text-[#14F195] font-medium">
+                      {selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''} selected
+                    </div>
+                    <button
+                      onClick={handleGoToCleanup}
+                      className="bg-[#14F195] text-black px-4 py-2 rounded-lg font-medium 
                          hover:bg-[#12D082] transition-all duration-300 
                          hover:shadow-lg hover:shadow-[#14F195]/30 
                          active:scale-95"
-              >
-                Go to Cleanup →
-              </button>
+                    >
+                      Go to Cleanup →
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
-    </div>
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
   );
 }
 
