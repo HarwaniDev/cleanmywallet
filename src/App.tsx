@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import Header from './components/Header';
 import TabNavigation from './components/TabNavigation';
 import TokenCard from './components/TokenCard';
@@ -6,12 +6,13 @@ import NFTCard from './components/NFTCard';
 import CleanupCart from './components/CleanupCart';
 import { TabType, Token, NFT, DustItem } from './types';
 import { mockTokens, mockNFTs } from './data/mockData';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletDisconnectButton, WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { ConnectionProvider, useWallet, WalletProvider } from '@solana/wallet-adapter-react';
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { UnsafeBurnerWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { clusterApiUrl } from '@solana/web3.js';
+import { clusterApiUrl, PublicKey } from '@solana/web3.js';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import '@solana/wallet-adapter-react-ui/styles.css';
+import { fetchTokenAccounts } from './helpers/fetchTokenAccounts';
 
 function App() {
   const network = WalletAdapterNetwork.Devnet;
@@ -24,10 +25,27 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [network]
   );
+  const wallet = useWallet();
+
+  useEffect(() => {
+    const fetchTokens = async () => {
+      try {
+        // if (!wallet.publicKey) {
+        //   return;
+        // }
+        const response = await fetchTokenAccounts(new PublicKey("8zNMRXJPoSBJ98iwZTFYQJr2i7bkAVognZV89vXaZSwc"));
+        console.log(response);
+        
+      } catch (error) {
+        console.log(error);
+      }
+    }
+    fetchTokens();
+  }, []);
+
   const [activeTab, setActiveTab] = useState<TabType>('Tokens');
   const [selectedItems, setSelectedItems] = useState<DustItem[]>([]);
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-
+  const [tokens, setTokens] = useState<Token[]>([]);
   const handleTokenSelect = useCallback((token: Token) => {
     const dustItem: DustItem = {
       name: token.symbol,
@@ -77,20 +95,6 @@ function App() {
       !(item.name === itemToRemove.name && item.type === itemToRemove.type)
     ));
   }, []);
-
-  const handleConnectWallet = useCallback(() => {
-    // Simulate wallet connection
-    if (!isWalletConnected) {
-      setIsWalletConnected(true);
-      // Simulate connection delay
-      setTimeout(() => {
-        alert('🎉 Wallet connected successfully!');
-      }, 500);
-    } else {
-      setIsWalletConnected(false);
-      alert('Wallet disconnected');
-    }
-  }, [isWalletConnected]);
 
   const handleGoToCleanup = useCallback(() => {
     setActiveTab('Cleanup');
@@ -174,11 +178,9 @@ function App() {
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          {/* <WalletMultiButton />
-          <WalletDisconnectButton /> */}
           <div className="min-h-screen bg-[#0F0F0F] text-white" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
             <div className="container mx-auto px-4 py-8">
-              <Header/>
+              <Header />
               <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
               <main className="animate-fadeIn">
