@@ -5,55 +5,60 @@ import TokenCard from './components/TokenCard';
 import NFTCard from './components/NFTCard';
 import CleanupCart from './components/CleanupCart';
 import { TabType, Token, NFT, DustItem } from './types';
-import { mockTokens, mockNFTs } from './data/mockData';
+import { mockNFTs } from './data/mockData';
 import { ConnectionProvider, useWallet, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { UnsafeBurnerWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { clusterApiUrl } from '@solana/web3.js';
+import { clusterApiUrl, PublicKey } from '@solana/web3.js';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import '@solana/wallet-adapter-react-ui/styles.css';
 import axios from 'axios';
 
-function App() {
-  const network = WalletAdapterNetwork.Mainnet;
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
-
-  const wallets = useMemo(
-    () => [
-      new UnsafeBurnerWalletAdapter(),
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [network]
-  );
+function AppContent() {
   const wallet = useWallet();
   const [activeTab, setActiveTab] = useState<TabType>('Tokens');
   const [selectedItems, setSelectedItems] = useState<DustItem[]>([]);
   const [tokens, setTokens] = useState<Token[]>([]);
 
-
   useEffect(() => {
+    if (!wallet.publicKey) {
+      return;
+    }
     async function fetchTokens() {
       try {
-        // if (!wallet.publicKey) {
-        //   return;
-        // }
         const response = await axios.post("http://localhost:3001/fetchTokens", {
-          walletAddress: "8zNMRXJPoSBJ98iwZTFYQJr2i7bkAVognZV89vXaZSwc"
+          walletAddress: wallet.publicKey
         })
+        console.log(response.data.tokens);
         setTokens(response.data.tokens);
       } catch (error) {
         console.log(error);
       }
     }
-    fetchTokens();
-  }, []);
 
+    async function getSerializedTx() {
+      const mintAddresses = [];
+      for (let item of selectedItems) {
+        mintAddresses.push(item.mintAddress);
+      }
+      const response = await axios.post("http://localhost:3001/redeemSOL", {
+        ataOwner: wallet.publicKey,
+        mintAddresses: mintAddresses
+      })
+      console.log(response.data);
+    }
+    if (selectedItems.length > 0) {
+      getSerializedTx();
+    }
+    fetchTokens();
+  }, [wallet.publicKey, selectedItems]);
 
   const handleTokenSelect = useCallback((token: Token) => {
     const dustItem: DustItem = {
       name: token.symbol,
       type: 'token',
-      logo: token.logoURI
+      logo: token.logoURI,
+      mintAddress: token.mintAddress
     };
 
     setSelectedItems(prev => {
@@ -75,7 +80,8 @@ function App() {
     const dustItem: DustItem = {
       name: nft.name,
       type: 'nft',
-      logo: nft.image
+      logo: nft.image,
+      mintAddress: nft.mintAddress
     };
 
     setSelectedItems(prev => {
@@ -135,8 +141,7 @@ function App() {
       case 'Tokens':
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-            {tokens.map((token, index) => (
+            {tokens && tokens.map((token, index) => (
               <TokenCard
                 key={`${token.symbol}-${index}`}
                 token={token}
@@ -146,7 +151,6 @@ function App() {
             ))}
           </div>
         );
-
       case 'NFTs':
         return (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -160,7 +164,6 @@ function App() {
             ))}
           </div>
         );
-
       case 'Cleanup':
         return (
           <div className="max-w-2xl mx-auto">
@@ -172,46 +175,57 @@ function App() {
             />
           </div>
         );
-
       default:
         return null;
     }
   };
 
   return (
+    <div className="min-h-screen bg-[#0F0F0F] text-white" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+      <div className="container mx-auto px-4 py-8">
+        <Header />
+        <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+        <main className="animate-fadeIn">
+          {renderTabContent()}
+        </main>
+        {/* Selection indicator with Go to Cleanup button */}
+        {selectedItems.length > 0 && activeTab !== 'Cleanup' && (
+          <div className="fixed bottom-6 right-6 bg-[#1A1A1A] border border-[#14F195] rounded-lg p-4 shadow-lg shadow-[#14F195]/20">
+            <div className="flex items-center gap-4">
+              <div className="text-[#14F195] font-medium">
+                {selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''} selected
+              </div>
+              <button
+                onClick={handleGoToCleanup}
+                className="bg-[#14F195] text-black px-4 py-2 rounded-lg font-medium 
+                   hover:bg-[#12D082] transition-all duration-300 
+                   hover:shadow-lg hover:shadow-[#14F195]/30 
+                   active:scale-95"
+              >
+                Go to Cleanup →
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const network = WalletAdapterNetwork.Mainnet;
+  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  const wallets = useMemo(
+    () => [
+      new UnsafeBurnerWalletAdapter(),
+    ],
+    [network]
+  );
+  return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          <div className="min-h-screen bg-[#0F0F0F] text-white" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-            <div className="container mx-auto px-4 py-8">
-              <Header />
-              <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
-
-              <main className="animate-fadeIn">
-                {renderTabContent()}
-              </main>
-
-              {/* Selection indicator with Go to Cleanup button */}
-              {selectedItems.length > 0 && activeTab !== 'Cleanup' && (
-                <div className="fixed bottom-6 right-6 bg-[#1A1A1A] border border-[#14F195] rounded-lg p-4 shadow-lg shadow-[#14F195]/20">
-                  <div className="flex items-center gap-4">
-                    <div className="text-[#14F195] font-medium">
-                      {selectedItems.length} item{selectedItems.length !== 1 ? 's' : ''} selected
-                    </div>
-                    <button
-                      onClick={handleGoToCleanup}
-                      className="bg-[#14F195] text-black px-4 py-2 rounded-lg font-medium 
-                         hover:bg-[#12D082] transition-all duration-300 
-                         hover:shadow-lg hover:shadow-[#14F195]/30 
-                         active:scale-95"
-                    >
-                      Go to Cleanup →
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <AppContent />
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
