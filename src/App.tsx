@@ -9,13 +9,13 @@ import { mockTokens, mockNFTs } from './data/mockData';
 import { ConnectionProvider, useWallet, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { UnsafeBurnerWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { clusterApiUrl, PublicKey } from '@solana/web3.js';
+import { clusterApiUrl } from '@solana/web3.js';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import '@solana/wallet-adapter-react-ui/styles.css';
-import { fetchTokenAccounts } from './helpers/fetchTokenAccounts';
+import axios from 'axios';
 
 function App() {
-  const network = WalletAdapterNetwork.Devnet;
+  const network = WalletAdapterNetwork.Mainnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
   const wallets = useMemo(
@@ -26,16 +26,21 @@ function App() {
     [network]
   );
   const wallet = useWallet();
+  const [activeTab, setActiveTab] = useState<TabType>('Tokens');
+  const [selectedItems, setSelectedItems] = useState<DustItem[]>([]);
+  const [tokens, setTokens] = useState<Token[]>([]);
+
 
   useEffect(() => {
-    const fetchTokens = async () => {
+    async function fetchTokens() {
       try {
         // if (!wallet.publicKey) {
         //   return;
         // }
-        const response = await fetchTokenAccounts(new PublicKey("8zNMRXJPoSBJ98iwZTFYQJr2i7bkAVognZV89vXaZSwc"));
-        console.log(response);
-        
+        const response = await axios.post("http://localhost:3001/fetchTokens", {
+          walletAddress: "8zNMRXJPoSBJ98iwZTFYQJr2i7bkAVognZV89vXaZSwc"
+        })
+        setTokens(response.data.tokens);
       } catch (error) {
         console.log(error);
       }
@@ -43,9 +48,7 @@ function App() {
     fetchTokens();
   }, []);
 
-  const [activeTab, setActiveTab] = useState<TabType>('Tokens');
-  const [selectedItems, setSelectedItems] = useState<DustItem[]>([]);
-  const [tokens, setTokens] = useState<Token[]>([]);
+
   const handleTokenSelect = useCallback((token: Token) => {
     const dustItem: DustItem = {
       name: token.symbol,
@@ -132,7 +135,8 @@ function App() {
       case 'Tokens':
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mockTokens.map((token, index) => (
+
+            {tokens.map((token, index) => (
               <TokenCard
                 key={`${token.symbol}-${index}`}
                 token={token}
