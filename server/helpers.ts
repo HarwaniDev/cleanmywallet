@@ -70,7 +70,7 @@ export async function createCloseAtaInstruction(connection: Connection, ataOwner
 
         const parsedInfo = await connection.getParsedAccountInfo(ata);
         const data = parsedInfo.value?.data as any;
-        const tokenAmount = data?.parsed?.info?.tokenAmount?.uiAmount || 0;
+        const tokenAmount = data?.parsed?.info?.tokenAmount?.uiAmount;
 
         // Only add close instruction if balance is 0
         if (tokenAmount === 0) {
@@ -85,6 +85,6 @@ export async function createCloseAtaInstruction(connection: Connection, ataOwner
 
     tx.feePayer = ataOwner;
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-
-    return tx.serialize({requireAllSignatures: false}).toString("base64");
+    const serializedTx = tx.serialize({requireAllSignatures: false}).toString("base64");
+    return serializedTx;
 }

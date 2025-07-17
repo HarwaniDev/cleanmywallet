@@ -4,7 +4,7 @@ import { createCloseAtaInstruction, fetchTokenAccounts } from "./helpers";
 import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 
 const app = express();
-const connection = new Connection(clusterApiUrl("mainnet-beta"));
+const connection = new Connection(clusterApiUrl("devnet"));
 app.use(express.json());
 app.use(cors());
 
@@ -31,6 +31,7 @@ app.post("/redeemSOL", async (req, res) => {
         pubKeyMintAddresses.push(new PublicKey(mint));
     }
     
+
     try {
         const serializedTx = await createCloseAtaInstruction(connection, new PublicKey(ataOwner), pubKeyMintAddresses);
         return res.json({
