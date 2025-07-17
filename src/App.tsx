@@ -5,7 +5,6 @@ import TokenCard from './components/TokenCard';
 import NFTCard from './components/NFTCard';
 import CleanupCart from './components/CleanupCart';
 import { TabType, Token, NFT, DustItem } from './types';
-import { mockNFTs } from './data/mockData';
 import { ConnectionProvider, useWallet, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { UnsafeBurnerWalletAdapter } from '@solana/wallet-adapter-wallets';
@@ -20,6 +19,7 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState<TabType>('Tokens');
   const [selectedItems, setSelectedItems] = useState<DustItem[]>([]);
   const [tokens, setTokens] = useState<Token[]>([]);
+  const [nfts, setNFTs] = useState<NFT[]>([]);
   const [tx, setTx] = useState("");
   const [shouldSign, setShouldSign] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,9 +32,11 @@ function AppContent() {
       try {
         setLoading(true);
         const response = await axios.post("http://localhost:3001/fetchTokens", {
-          walletAddress: wallet.publicKey
+          walletAddress: "9cJcFtNP7FAT2L4C5b2FLgtTEiev3S3v2JcpbJHCrtSQ"
         })
-        setTokens(response.data.tokens);
+        setTokens(response.data.tokens.tokensOwnedByUser);
+        setNFTs(response.data.tokens.NFTsOwnedByUser);
+        
         setLoading(false);
       } catch (error) {
         console.log(error);
@@ -171,11 +173,18 @@ function AppContent() {
   }, [selectedItems]);
 
   const renderTabContent = () => {
+    if (!wallet.publicKey) {
+      return (
+        <div className="text-center text-lg py-8">connect your wallet to see your assets</div>
+      );
+    }
     switch (activeTab) {
       case 'Tokens':
         return (
           loading ? (
             <div className="text-center text-lg py-8">fetching tokens...</div>
+          ) : tokens.length === 0 ? (
+            <div className="text-center text-lg py-8">No tokens found in this wallet</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {tokens && tokens.map((token, index) => (
@@ -191,16 +200,22 @@ function AppContent() {
         );
       case 'NFTs':
         return (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {mockNFTs.map((nft, index) => (
-              <NFTCard
-                key={`${nft.name}-${index}`}
-                nft={nft}
-                isSelected={isNFTSelected(nft)}
-                onSelect={handleNFTSelect}
-              />
-            ))}
-          </div>
+          loading ? (
+            <div className="text-center text-lg py-8">fetching NFTs...</div>
+          ) : nfts.length === 0 ? (
+            <div className="text-center text-lg py-8">No NFTs found in this wallet</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              {nfts && nfts.map((nft, index) => (
+                <NFTCard
+                  key={`${nft.name}-${index}`}
+                  nft={nft}
+                  isSelected={isNFTSelected(nft)}
+                  onSelect={handleNFTSelect}
+                />
+              ))}
+            </div>
+          )
         );
       case 'Cleanup':
         return (

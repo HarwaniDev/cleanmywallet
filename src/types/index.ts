@@ -8,7 +8,7 @@ export interface Token {
 
 export interface NFT {
   name: string;
-  collection: string;
+  symbol: string;
   balance: number;
   image: string;
   mintAddress: string;
@@ -19,6 +19,7 @@ export interface DustItem {
   type: 'token' | 'nft';
   logo: string;
   mintAddress: string;
+  image?: string
 }
 
 export type TabType = 'Tokens' | 'NFTs' | 'Cleanup';

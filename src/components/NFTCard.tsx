@@ -25,12 +25,14 @@ const NFTCard: React.FC<NFTCardProps> = ({ nft, isSelected, onSelect }) => {
       `}
     >
       <div className="aspect-square bg-[#2A2A2A] rounded-lg mb-3 flex items-center justify-center">
-        <Image className="text-[#14F195]" size={32} />
+        {/* <Image className="text-[#14F195]" size={32} /> */}
+        <img src={nft.image} alt={nft.symbol} />
       </div>
       
       <div className="space-y-1">
         <h3 className="font-semibold text-white text-sm truncate">{nft.name}</h3>
-        <p className="text-xs text-gray-400 truncate">{nft.collection}</p>
+        <p className="text-xs text-gray-400 truncate">{nft.symbol}</p>
+        <p className="text-xs text-gray-400 truncate">balance: {nft.balance}</p>
       </div>
       
       {isZeroBalance && (

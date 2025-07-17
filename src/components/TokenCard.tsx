@@ -27,7 +27,7 @@ const TokenCard: React.FC<TokenCardProps> = ({ token, isSelected, onSelect }) =>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#2A2A2A] rounded-full flex items-center justify-center">
-            <Coins className="text-[#14F195]" size={20} />
+            <img src={token.logoURI} alt={token.symbol} />
           </div>
           <div>
             <h3 className="font-semibold text-white">{token.name}</h3>
