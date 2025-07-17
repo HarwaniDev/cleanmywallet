@@ -6,14 +6,12 @@ interface CleanupCartProps {
   items: DustItem[];
   onRemoveItem: (item: DustItem) => void;
   onCleanup: () => void;
-  estimatedSol: string;
 }
 
 const CleanupCart: React.FC<CleanupCartProps> = ({ 
   items, 
   onRemoveItem, 
   onCleanup, 
-  estimatedSol 
 }) => {
   return (
     <div className="space-y-6">
@@ -70,7 +68,6 @@ const CleanupCart: React.FC<CleanupCartProps> = ({
         <div className="space-y-4">
           <div className="text-center">
             <p className="text-[#14F195] font-bold text-lg">
-              Estimated reclaim: {estimatedSol} SOL
             </p>
           </div>
           

@@ -9,17 +9,21 @@ import { mockNFTs } from './data/mockData';
 import { ConnectionProvider, useWallet, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { UnsafeBurnerWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { clusterApiUrl, PublicKey } from '@solana/web3.js';
+import { clusterApiUrl, Connection, Transaction } from '@solana/web3.js';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import '@solana/wallet-adapter-react-ui/styles.css';
 import axios from 'axios';
 
 function AppContent() {
   const wallet = useWallet();
+  const connection = new Connection(clusterApiUrl("devnet"));
   const [activeTab, setActiveTab] = useState<TabType>('Tokens');
   const [selectedItems, setSelectedItems] = useState<DustItem[]>([]);
   const [tokens, setTokens] = useState<Token[]>([]);
+  const [tx, setTx] = useState("");
+  const [shouldSign, setShouldSign] = useState(false);
 
+  // fetch tokens owned by wallet
   useEffect(() => {
     if (!wallet.publicKey) {
       return;
@@ -30,28 +34,40 @@ function AppContent() {
           walletAddress: wallet.publicKey
         })
         console.log(response.data.tokens);
+
         setTokens(response.data.tokens);
       } catch (error) {
         console.log(error);
       }
     }
+    fetchTokens();
+    setSelectedItems([]);
+  }, [wallet.publicKey]);
 
+  //get serialized tx from backend
+  useEffect(() => {
+    if (!wallet.publicKey) {
+      return;
+    }
     async function getSerializedTx() {
+      
       const mintAddresses = [];
       for (let item of selectedItems) {
         mintAddresses.push(item.mintAddress);
       }
+
       const response = await axios.post("http://localhost:3001/redeemSOL", {
         ataOwner: wallet.publicKey,
         mintAddresses: mintAddresses
       })
-      console.log(response.data);
+
+      setTx(response.data.serializedTx);
     }
+
     if (selectedItems.length > 0) {
       getSerializedTx();
     }
-    fetchTokens();
-  }, [wallet.publicKey, selectedItems]);
+  }, [selectedItems])
 
   const handleTokenSelect = useCallback((token: Token) => {
     const dustItem: DustItem = {
@@ -110,17 +126,37 @@ function AppContent() {
   }, []);
 
   const handleCleanup = useCallback(() => {
-    // Simulate cleanup animation
-    const button = document.querySelector('button:last-child');
-    if (button) {
-      button.classList.add('animate-pulse');
-      setTimeout(() => {
-        button.classList.remove('animate-pulse');
-        // alert(`🎉 Successfully cleaned up ${selectedItems.length} items and reclaimed SOL!`);
-        setSelectedItems([]);
-      }, 2000);
+    setShouldSign(true);
+  }, []);
+
+  useEffect(() => {
+    async function signTx() {
+      if (!tx) {
+        console.error("No transaction to sign");
+        setShouldSign(false);
+        return;
+      }
+      if (wallet.signTransaction) {
+        try {
+          const buffer = Buffer.from(tx, "base64");
+          const transaction = Transaction.from(buffer);
+          const signedTx = await wallet.signTransaction(transaction);
+          const txid = await connection.sendRawTransaction(signedTx.serialize());
+          await connection.confirmTransaction(txid, "confirmed");
+          setSelectedItems([]);
+        } catch (error) {
+          console.error("something went wrong: ", error);
+        }
+      } else {
+        console.error("wallet.signTransaction is undefined");
+      }
+      setShouldSign(false);
     }
-  }, [selectedItems.length]);
+
+    if (shouldSign && tx) {
+      signTx();
+    }
+  }, [shouldSign, tx]);
 
   const isTokenSelected = useCallback((token: Token) => {
     return selectedItems.some(item =>
@@ -133,8 +169,6 @@ function AppContent() {
       item.name === nft.name && item.type === 'nft'
     );
   }, [selectedItems]);
-
-  const estimatedSol = (selectedItems.length * 0.002).toFixed(4);
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -171,7 +205,6 @@ function AppContent() {
               items={selectedItems}
               onRemoveItem={handleRemoveItem}
               onCleanup={handleCleanup}
-              estimatedSol={estimatedSol}
             />
           </div>
         );
