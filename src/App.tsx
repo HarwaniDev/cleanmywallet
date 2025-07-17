@@ -22,7 +22,7 @@ function AppContent() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [tx, setTx] = useState("");
   const [shouldSign, setShouldSign] = useState(false);
-
+  const [loading, setLoading] = useState(false);
   // fetch tokens owned by wallet
   useEffect(() => {
     if (!wallet.publicKey) {
@@ -30,12 +30,12 @@ function AppContent() {
     }
     async function fetchTokens() {
       try {
+        setLoading(true);
         const response = await axios.post("http://localhost:3001/fetchTokens", {
           walletAddress: wallet.publicKey
         })
-        console.log(response.data.tokens);
-
         setTokens(response.data.tokens);
+        setLoading(false);
       } catch (error) {
         console.log(error);
       }
@@ -174,16 +174,20 @@ function AppContent() {
     switch (activeTab) {
       case 'Tokens':
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tokens && tokens.map((token, index) => (
-              <TokenCard
-                key={`${token.symbol}-${index}`}
-                token={token}
-                isSelected={isTokenSelected(token)}
-                onSelect={handleTokenSelect}
-              />
-            ))}
-          </div>
+          loading ? (
+            <div className="text-center text-lg py-8">fetching tokens...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tokens && tokens.map((token, index) => (
+                <TokenCard
+                  key={`${token.symbol}-${index}`}
+                  token={token}
+                  isSelected={isTokenSelected(token)}
+                  onSelect={handleTokenSelect}
+                />
+              ))}
+            </div>
+          )
         );
       case 'NFTs':
         return (
