@@ -19,18 +19,33 @@ export async function fetchTokenAccounts(walletAddress: string) {
             ]
         }
         )
-        const response = [];
+        const tokensOwnedByUser = [];
+        const NFTsOwnedByUser = [];
         for (let token of tokens.data.result.value) {
             const mintAddress = token.account.data.parsed.info.mint;
-            const data = await getTokenInfo(mintAddress);
-            const tokenWithBalance = {
-                ...data,
-                balance: token.account.data.parsed.info.tokenAmount.uiAmount,
-                mintAddress: token.account.data.parsed.info.mint
-            };
-            response.push(tokenWithBalance);
+
+            if (token.account.data.parsed.info.tokenAmount.decimals !== 0) {
+                //get token info
+                const data = await getTokenInfo(mintAddress);
+                const tokenWithBalanceAndMint = {
+                    ...data,
+                    balance: token.account.data.parsed.info.tokenAmount.uiAmount,
+                    mintAddress: mintAddress
+                };
+                tokensOwnedByUser.push(tokenWithBalanceAndMint);
+            } else {
+                // get nft info
+                const data = await getNFTInfo(mintAddress);
+                const tokenWithBalanceAndMint = {
+                    ...data,
+                    balance: token.account.data.parsed.info.tokenAmount.uiAmount,
+                    mintAddress: mintAddress
+                }
+                NFTsOwnedByUser.push(tokenWithBalanceAndMint);
+            }
+
         }
-        return response;
+        return { tokensOwnedByUser, NFTsOwnedByUser };
     } catch (error) {
         throw new Error("Error in fetchTokenAccounts: " + error);
     }
@@ -46,8 +61,7 @@ export async function getTokenInfo(mintAddress: string) {
             "params": {
                 "id": mintAddress
             }
-        }
-        )
+        })
         return {
             name: response.data.result.content.metadata.name,
             symbol: response.data.result.token_info.symbol,
@@ -56,6 +70,28 @@ export async function getTokenInfo(mintAddress: string) {
     } catch (error) {
         throw new Error("Error in getTokenInfo: " + error);
     }
+}
+
+export async function getNFTInfo(mintAddress: string) {
+    try {
+        const response = await axios.post(`https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`, {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "getAsset",
+            "params": {
+                "id": mintAddress
+            }
+        });
+        return {
+            name: response.data.result.content.metadata.name,
+            symbol: response.data.result.content.metadata.symbol,
+            image: response.data.result.content.files[0].uri,
+        }
+    } catch (error) {
+        throw new Error("Error in getNFTInfo: " + error);
+    }
+
+
 }
 
 export async function createCloseAtaInstruction(connection: Connection, ataOwner: PublicKey, mintAddresses: PublicKey[]) {
@@ -85,6 +121,6 @@ export async function createCloseAtaInstruction(connection: Connection, ataOwner
 
     tx.feePayer = ataOwner;
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-    const serializedTx = tx.serialize({requireAllSignatures: false}).toString("base64");
+    const serializedTx = tx.serialize({ requireAllSignatures: false }).toString("base64");
     return serializedTx;
 }
