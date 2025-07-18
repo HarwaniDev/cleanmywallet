@@ -3,7 +3,7 @@ import cors from "cors";
 import { createCloseAtaInstruction, fetchTokenAccounts } from "./helpers";
 import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
 const app = express();
-const connection = new Connection(clusterApiUrl("devnet"));
+const connection = new Connection(clusterApiUrl("mainnet-beta"));
 app.use(express.json());
 app.use(cors());
 app.post("/fetchTokens", async (req, res) => {

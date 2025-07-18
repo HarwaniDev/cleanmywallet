@@ -4,7 +4,7 @@ import { createCloseAccountInstruction, getAssociatedTokenAddress } from "@solan
 
 export async function fetchTokenAccounts(walletAddress: string) {
     try {
-        const tokens = await axios.post("https://api.devnet.solana.com", {
+        const tokens = await axios.post("https://api.mainnet-beta.solana.com", {
             "jsonrpc": "2.0",
             "id": 1,
             "method": "getTokenAccountsByOwner",
@@ -54,7 +54,7 @@ export async function fetchTokenAccounts(walletAddress: string) {
 export async function getTokenInfo(mintAddress: string) {
     try {
 
-        const response = await axios.post(`https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`, {
+        const response = await axios.post(`https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`, {
             "jsonrpc": "2.0",
             "id": 1,
             "method": "getAsset",
