@@ -15,7 +15,7 @@ import axios from 'axios';
 
 function AppContent() {
   const wallet = useWallet();
-  const connection = new Connection(clusterApiUrl("devnet"));
+  const connection = new Connection(clusterApiUrl("mainnet-beta"));
   const [activeTab, setActiveTab] = useState<TabType>('Tokens');
   const [selectedItems, setSelectedItems] = useState<DustItem[]>([]);
   const [tokens, setTokens] = useState<Token[]>([]);
@@ -31,7 +31,7 @@ function AppContent() {
     async function fetchTokens() {
       try {
         setLoading(true);
-        const response = await axios.post("http://localhost:3001/fetchTokens", {
+        const response = await axios.post("https://cleanmywallet.onrender.com/fetchTokens", {
           walletAddress: wallet.publicKey
         })
         setTokens(response.data.tokens.tokensOwnedByUser);
@@ -58,7 +58,7 @@ function AppContent() {
         mintAddresses.push(item.mintAddress);
       }
 
-      const response = await axios.post("http://localhost:3001/redeemSOL", {
+      const response = await axios.post("https://cleanmywallet.onrender.com/redeemSOL", {
         ataOwner: wallet.publicKey,
         mintAddresses: mintAddresses
       })
