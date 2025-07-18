@@ -1,6 +1,6 @@
 import React from 'react';
 import { Token } from '../types';
-import { Plus, Coins } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface TokenCardProps {
   token: Token;

@@ -32,7 +32,7 @@ function AppContent() {
       try {
         setLoading(true);
         const response = await axios.post("http://localhost:3001/fetchTokens", {
-          walletAddress: "9cJcFtNP7FAT2L4C5b2FLgtTEiev3S3v2JcpbJHCrtSQ"
+          walletAddress: wallet.publicKey
         })
         setTokens(response.data.tokens.tokensOwnedByUser);
         setNFTs(response.data.tokens.NFTsOwnedByUser);
@@ -44,7 +44,7 @@ function AppContent() {
     }
     fetchTokens();
     setSelectedItems([]);
-  }, [wallet.publicKey]);
+  }, [wallet.publicKey, selectedItems.length]);
 
   //get serialized tx from backend
   useEffect(() => {

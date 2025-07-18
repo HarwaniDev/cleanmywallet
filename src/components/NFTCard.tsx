@@ -1,6 +1,6 @@
 import React from 'react';
 import { NFT } from '../types';
-import { Plus, Image } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 interface NFTCardProps {
   nft: NFT;
